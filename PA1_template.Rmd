@@ -1,25 +1,74 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Assignment 1"
+author: "Jon Purnell"
+date: "Thursday, February 12, 2015"
+output: html_document
 ---
 
-
 ## Loading and preprocessing the data
-
-
-
+```{r loadData}
+options(scipen = 1)
+data <- read.csv("activity.csv",header=T)
+```
 ## What is mean total number of steps taken per day?
+```{r stepsProcess}
+stepsTaken <- tapply(data$steps,data$date,sum)
+```
 
+### Histogram
+```{r stepsHist}
+hist(stepsTaken)
+```
 
+### Mean and Median
+
+```{r stepsStats}
+stepsMean <- mean(stepsTaken,na.rm=T)
+stepsMedian <- median(stepsTaken,na.rm=T)
+```
+Mean total steps taken is `r stepsMean`. Median total steps taken is `r stepsMedian`. 
 
 ## What is the average daily activity pattern?
 
+A plot of the average steps taken at each 5-minute interval. 
 
+```{r avgDaily}
+avgDaily <- tapply(data$steps,data$interval,mean,na.rm=T)
+plot(unique(data$interval),avgDaily,type="l",xlab="Interval",ylab="Average Daily Steps Taken")
+maxInterval <- unique(data$interval)[which.max(avgDaily)]
+```
+
+The highest average of steps taken happened at `r maxInterval`. 
 
 ## Imputing missing values
 
+```{r missing}
+missingIntervals <- is.na(data$steps)
+rowsMissing <- sum(missingIntervals)
+```
+There are `r rowsMissing` rows missing data. These are filled with the corresponding average daily steps taken for that interval.
 
+```{r filling}
+data$filledsteps <- data$steps
+data$filledsteps[missingIntervals] <- avgDaily
+stepsTakenFilled <- tapply(data$filledsteps,data$date,sum)
+```
+
+### Stats for filled data
+
+```{r stepsFilledStats}
+hist(stepsTakenFilled)
+stepsMeanFilled <- mean(stepsTakenFilled,na.rm=T)
+stepsMedianFilled <- median(stepsTakenFilled,na.rm=T)
+```
+Mean total steps taken is `r stepsMeanFilled`. Median total steps taken is `r stepsMedianFilled`. 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r calculateDays, results='hide'}
+weekends <- weekdays(as.Date(data$date)) %in% c("Sunday","Saturday")
+data$WeekOrEnd <- factor(replace(replace(weekends,weekends == T, "Weekend"), weekends == F, "Weekday"))
+
+par(mfrow=c(2,1))
+by(data,data$WeekOrEnd,function(x) plot(unique(x$interval),tapply(x$steps,x$interval,mean,na.rm=T),type="l",xlab=x$WeekOrEnd[1],ylab="Average Daily Steps"))
+```
